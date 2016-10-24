@@ -1,0 +1,123 @@
+1.changes made to scp/tickets.php
+
+a.//changes to display only open tickets(excluding waiting on dev,waiting on cust) - addded statusid=1 in href (line 402)
+
+    if ($stats) {
+
+        $nav->addSubMenu(array('desc'=>$open_name.' ('.number_format($stats['open']).')',
+                               'title'=>__('Open Tickets'),
+                               'href'=>'tickets.php?status=open&statusid=1',
+                               'iconclass'=>'Ticket'),
+                            (!$_REQUEST['status'] || $_REQUEST['status']=='open'));
+    }
+
+b.//changes to add waiting on dev (line 451 to 456)
+$nav->addSubMenu(array('desc'=>('Waiting on Dev').'('.number_format($stats['waitingondev']).')',
+                               'title'=>__('Waiting on dev'),
+                               'href'=>'tickets.php?status=open&statusid=7',
+                               'iconclass'=>'Ticket'),
+                            ($_REQUEST['statusid']=='7'));
+                            
+c.//changes to add waiting on customer (line 458 ti 462)
+        $nav->addSubMenu(array('desc'=>('Waiting on Cust').' ('.number_format($stats['waitingoncust']).')',
+                               'title'=>__('Waiting on Cust '),
+                               'href'=>'tickets.php?status=open&statusid=6',
+                               'iconclass'=>'Ticket'),
+                            ($_REQUEST['statusid']=='6' ));
+
+d.//removed + answered ticket in open status - line 390
+if($cfg->showAnsweredTickets()) {
+    $nav->addSubMenu(array('desc'=>$open_name.' ('.number_format($stats['open']).')',
+                            'title'=>__('Open Tickets'),
+                            'href'=>'tickets.php?status=open',
+                            'iconclass'=>'Ticket'),
+                        (!$_REQUEST['status'] || $_REQUEST['status']=='open'));
+}
+
+2.changes made to include/staff/tickets.inc.php
+
+
+	//changes to add waiting on dev (line 33 to 37)
+	case 'waitingondev':
+        $status='open';
+		$results_type=__('Waiting on dev');
+        break;
+	//changes to add waiting on cust	(line 38 to 42)
+	case 'waitingoncust':
+        $status='open';
+		$results_type=__('Waiting on cust');
+        break;
+
+a.//changes to add waiting on dev and waiting on cust and to display only open-tickets in open status(line 178 to 202)
+
+if($_REQUEST['statusid']) 
+{
+    $statusid = $_REQUEST['statusid'];
+    if($statusid==7)
+    {
+    $qwhere .= ' AND status.name LIKE "%dev%"';
+    }
+if($statusid==6)
+    {
+    $qwhere .= ' AND status.name LIKE "%cust%"';
+    }
+   if($statusid==1)
+    {
+    $qwhere .= ' AND NOT status.name LIKE "%wait%"';
+    }
+}
+
+else if($_REQUEST['status']) 
+{
+    $statusopen = $_REQUEST['status'];
+ if($statusopen=='open')
+    {
+    $qwhere .= ' AND NOT status.name LIKE "%wait%"';
+    }
+}     
+
+b.//changes to add waiting on dev
+if ($_REQUEST['statusid']==7)
+{
+    
+    $results_type = sprintf(__('Waiting on Dev Tickets'));
+}
+
+c.//changes to add waiting on cust (line 321 to 334)
+if ($_REQUEST['statusid']==6)
+{
+    
+    $results_type = sprintf(__('Waiting on Customer Tickets'));
+    
+}
+
+3.changes made to include/class.ticket.php
+
+a.//changes to display only opentickets excluding waiting on dev and waiting on cust - addded status id=1 in where clause(line 2405)
+
+        $sql =  'SELECT \'open\', count( ticket.ticket_id ) AS tickets '
+                .'FROM ' . TICKET_TABLE . ' ticket '
+                .'INNER JOIN '.TICKET_STATUS_TABLE. ' status
+                    ON (ticket.status_id=status.id
+                            AND status.state=\'open\') '
+                .'WHERE status.id = 1 '
+                . $where . $where2
+				
+b.//changes to add waiting on dev   (line 2441 to 2447)
+			    .'UNION SELECT \'waitingondev\', count( ticket.ticket_id ) AS tickets '
+                .'FROM ' . TICKET_TABLE . ' ticket '
+                .'INNER JOIN '.TICKET_STATUS_TABLE. ' status
+                    ON (ticket.status_id=status.id
+                            AND status.state=\'open\' ) '
+                .'WHERE status.name LIKE \'%dev%\' '
+                . $where
+	   
+c.//changes to add waiting on cust (line 2450 to 2456)
+		        .'UNION SELECT \'waitingoncust\', count( ticket.ticket_id ) AS tickets '
+                .'FROM ' . TICKET_TABLE . ' ticket '
+                .'INNER JOIN '.TICKET_STATUS_TABLE. ' status
+                    ON (ticket.status_id=status.id
+                            AND status.state=\'open\' ) '
+                .'WHERE status.name LIKE \'%cust%\' '
+                . $where;
+		
